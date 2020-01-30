@@ -20,7 +20,8 @@ const requestClient = () => {
   instance.interceptors.response.use((response) => {
     return response;
   }, (error) => {
-    console.log("ERROR RESPONSE");
+    console.log("ERROR RESPONSE", error);
+    return Promise.reject(error);
   });
   return instance;
 }

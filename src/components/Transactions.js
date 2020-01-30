@@ -42,10 +42,11 @@ class Transactions extends React.Component {
       firstTimestamp: null,
       lastHash: null,
       lastTimestamp: null,
-      loaded: false,
+      loading: true,
       hasAfter: false,
       hasBefore: false,
       queryParams: this.obtainQueryParams(),
+      error: null,
     }
   }
 
@@ -57,11 +58,15 @@ class Transactions extends React.Component {
 
   componentDidUpdate(prevProps, prevState) {
     const queryParams = this.obtainQueryParams();
+    const justErrored = this.state.error && !prevState.error;
+    const skipGetData = this.state.loading || justErrored;
 
     // Do we have new URL params?
-    if (!isEqual(this.state.queryParams, queryParams)) {
+    if (!skipGetData && !isEqual(this.state.queryParams, queryParams)) {
       // Fetch new data, unless query params were cleared and we were already in the most recent page
       if (queryParams.hash || this.state.hasBefore) {
+        console.log("will call getData()");
+        this.setState({ loading: true, error: null });
         this.getData(queryParams);
       }
     }
@@ -131,7 +136,7 @@ class Transactions extends React.Component {
 
     this.setState({
       transactions: data.transactions,
-      loaded: true,
+      loading: false,
       firstHash,
       lastHash,
       firstTimestamp,
@@ -144,10 +149,24 @@ class Transactions extends React.Component {
 
   getData(queryParams) {
     this.props.updateData(queryParams.timestamp, queryParams.hash, queryParams.page).then((data) => {
+
+      // FIXME: remove this code. Just for testing
+      if (Math.random() < 0.5) {
+        return Promise.reject('simulated error!');
+      } else {
+        // simulated delay
+        return new Promise(function(resolve) {
+          window.setTimeout(resolve, 300, data);
+        });
+      }
+    }).then((data) => {
+      // FIXME: remove this code. Just for testing
+
       this.handleDataFetched(data, queryParams);
     }, (e) => {
       // Error in request
       console.log(e);
+      this.setState({ loading: false, error: e });
     });
   }
 
@@ -184,10 +203,10 @@ class Transactions extends React.Component {
         return (
           <nav aria-label="Tx pagination" className="d-flex justify-content-center">
             <ul className="pagination">
-              <li ref="txPrevious" className={(!this.state.hasBefore || this.state.transactions.length === 0) ? "page-item mr-3 disabled" : "page-item mr-3"}>
+              <li ref="txPrevious" className={(!this.state.hasBefore || this.state.transactions.length === 0 || this.state.loading) ? "page-item mr-3 disabled" : "page-item mr-3"}>
                 <Link className="page-link" to={this.paginationUrl(this.state.firstTimestamp, this.state.firstHash, 'previous')}>Previous</Link>
               </li>
-              <li ref="txNext" className={(!this.state.hasAfter || this.state.transactions.length === 0) ? "page-item disabled" : "page-item"}>
+              <li ref="txNext" className={(!this.state.hasAfter || this.state.transactions.length === 0 || this.state.loading) ? "page-item disabled" : "page-item"}>
                 <Link className="page-link" to={this.paginationUrl(this.state.lastTimestamp, this.state.lastHash, 'next')}>Next</Link>
               </li>
             </ul>
@@ -226,7 +245,11 @@ class Transactions extends React.Component {
     return (
       <div className="w-100">
         {this.props.title}
-        {!this.state.loaded ? <ReactLoading type='spin' color={colors.purpleHathor} delay={500} /> : loadTable()}
+        <div className="ajax-feedback">
+          {this.state.loading && <ReactLoading type='spin' color={colors.purpleHathor} delay={0} width={30} height={30} />}
+          {this.state.error && <span className="text-danger">An error has occurred. Please try again in a moment. [{this.state.error}]</span>}
+        </div>
+        {loadTable()}
         {loadPagination()}
       </div>
     );

@@ -26,6 +26,7 @@ a:hover {
 }
 
 .content-wrapper {
+  position: relative;
   margin: 2rem auto;
   max-width: 988px;
   -webkit-margin-bottom-collapse: separate;
@@ -385,4 +386,10 @@ p.subtitle {
 .dropdown-menu a.nav-link {
   padding-left: 0.5rem;
   padding-right: 0.5rem;
+}
+
+.ajax-feedback {
+  position: absolute;
+  top: 10px;
+  right: 10px;
 }
